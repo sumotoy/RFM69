@@ -25,7 +25,7 @@ GPL 3.0, please see the [License.txt](https://github.com/LowPowerLab/RFM69/blob/
 - hardware preamble, synch recognition and CRC check
 - digital RSSI can be read at any time with readRSSI()
 - interrupt driven
-- tested on [Moteino R3, R4, R4-USB (ATMega328p), MEGA (ATMega1284p)](https://lowpowerlab.com/shop/Moteino-R4)
+- tested on [Moteino R3, R4, R4-USB (ATMega328p), MEGA (ATMega1284p)](https://lowpowerlab.com/shop/Moteino-R4),Teensy 3, Teensy3.1,Teensy3.2,TeensyLC
 - works with RFM69W, RFM69HW, RFM69CW, RFM69HCW, Semtech SX1231/SX1231H transceivers
 - promiscuous mode allows any node to listen to any packet on same network
 
