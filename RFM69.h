@@ -48,10 +48,10 @@
   #define RF69_IRQ_NUM          0
 #elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MKL26Z64__)
   #define RF69_IRQ_PIN          2
-  #define RF69_IRQ_NUM          2  
+  //#define RF69_IRQ_NUM          2  
 #else 
   #define RF69_IRQ_PIN          2
-  #define RF69_IRQ_NUM          0  
+  //#define RF69_IRQ_NUM          0  
 #endif
 
 
@@ -91,10 +91,10 @@ class RFM69 {
     static volatile int16_t RSSI; // most accurate RSSI during reception (closest to the reception)
     static volatile uint8_t _mode; // should be protected?
 
-    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false, uint8_t interruptNum=RF69_IRQ_NUM) {
+    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false) {
       _slaveSelectPin = slaveSelectPin;
       _interruptPin = interruptPin;
-      _interruptNum = interruptNum;
+      //_interruptNum = interruptNum;
       _mode = RF69_MODE_STANDBY;
       _promiscuousMode = false;
       _powerLevel = 31;
@@ -137,7 +137,7 @@ class RFM69 {
     static RFM69* selfPointer;
     uint8_t _slaveSelectPin;
     uint8_t _interruptPin;
-    uint8_t _interruptNum;
+    //uint8_t _interruptNum;
     uint8_t _address;
     bool _promiscuousMode;
     uint8_t _powerLevel;
