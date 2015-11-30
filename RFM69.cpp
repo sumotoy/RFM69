@@ -3,6 +3,8 @@
 // **********************************************************************************
 // Copyright Felix Rusu (2014), felix@lowpowerlab.com
 // http://lowpowerlab.com/
+// Modified by sumotoy for Teesny support and some extras
+// https://github.com/sumotoy/RFM69
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -30,7 +32,7 @@
 // **********************************************************************************
 #include <RFM69.h>
 #include <RFM69registers.h>
-#include <SPI.h>
+
 
 volatile uint8_t RFM69::DATA[RF69_MAX_DATA_LEN];
 volatile uint8_t RFM69::_mode;        // current transceiver state
@@ -87,33 +89,34 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
     {255, 0}
   };
 
-  digitalWrite(_slaveSelectPin, HIGH);
-  pinMode(_slaveSelectPin, OUTPUT);
-  SPI.begin();
-  unsigned long start = millis();
-  uint8_t timeout = 50;
-  do writeReg(REG_SYNCVALUE1, 0xAA); while (readReg(REG_SYNCVALUE1) != 0xaa && millis()-start < timeout);
-  start = millis();
-  do writeReg(REG_SYNCVALUE1, 0x55); while (readReg(REG_SYNCVALUE1) != 0x55 && millis()-start < timeout);
+  
+	pinMode(_slaveSelectPin, OUTPUT);
+	SPI.begin();
+	digitalWrite(_slaveSelectPin, HIGH);
+  
+	unsigned long start = millis();
+	uint8_t timeout = 50;
+	do writeReg(REG_SYNCVALUE1, 0xAA); while (readReg(REG_SYNCVALUE1) != 0xaa && millis()-start < timeout);
+	start = millis();
+	do writeReg(REG_SYNCVALUE1, 0x55); while (readReg(REG_SYNCVALUE1) != 0x55 && millis()-start < timeout);
 
-  for (uint8_t i = 0; CONFIG[i][0] != 255; i++)
-    writeReg(CONFIG[i][0], CONFIG[i][1]);
-
+	for (uint8_t i = 0; CONFIG[i][0] != 255; i++){
+		writeReg(CONFIG[i][0], CONFIG[i][1]);
+	}
   // Encryption is persistent between resets and can trip you up during debugging.
   // Disable it during initialization so we always start from a known state.
-  encrypt(0);
+	encrypt(0);
 
-  setHighPower(_isRFM69HW); // called regardless if it's a RFM69W or RFM69HW
-  setMode(RF69_MODE_STANDBY);
-  start = millis();
-  while (((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis()-start < timeout); // wait for ModeReady
-  if (millis()-start >= timeout)
-    return false;
-  attachInterrupt(_interruptNum, RFM69::isr0, RISING);
+	setHighPower(_isRFM69HW); // called regardless if it's a RFM69W or RFM69HW
+	setMode(RF69_MODE_STANDBY);
+	start = millis();
+	while (((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis()-start < timeout); // wait for ModeReady
+	if (millis()-start >= timeout) return false;
+	attachInterrupt(_interruptNum, RFM69::isr0, RISING);
 
-  selfPointer = this;
-  _address = nodeID;
-  return true;
+	selfPointer = this;
+	_address = nodeID;
+	return true;
 }
 
 // return the frequency (in Hz)
@@ -125,24 +128,19 @@ uint32_t RFM69::getFrequency()
 // set the frequency (in Hz)
 void RFM69::setFrequency(uint32_t freqHz)
 {
-  uint8_t oldMode = _mode;
-  if (oldMode == RF69_MODE_TX) {
-    setMode(RF69_MODE_RX);
-  }
-  freqHz /= RF69_FSTEP; // divide down by FSTEP to get FRF
-  writeReg(REG_FRFMSB, freqHz >> 16);
-  writeReg(REG_FRFMID, freqHz >> 8);
-  writeReg(REG_FRFLSB, freqHz);
-  if (oldMode == RF69_MODE_RX) {
-    setMode(RF69_MODE_SYNTH);
-  }
-  setMode(oldMode);
+	uint8_t oldMode = _mode;
+	if (oldMode == RF69_MODE_TX) setMode(RF69_MODE_RX);
+	freqHz /= RF69_FSTEP; // divide down by FSTEP to get FRF
+	writeReg(REG_FRFMSB, freqHz >> 16);
+	writeReg(REG_FRFMID, freqHz >> 8);
+	writeReg(REG_FRFLSB, freqHz);
+	if (oldMode == RF69_MODE_RX) setMode(RF69_MODE_SYNTH);
+	setMode(oldMode);
 }
 
 void RFM69::setMode(uint8_t newMode)
 {
-  if (newMode == _mode)
-    return;
+  if (newMode == _mode) return;
 
   switch (newMode) {
     case RF69_MODE_TX:
@@ -169,7 +167,6 @@ void RFM69::setMode(uint8_t newMode)
   // we are using packet mode, so this check is not really needed
   // but waiting for mode ready is necessary when going from sleep because the FIFO may not be immediately available from previous mode
   while (_mode == RF69_MODE_SLEEP && (readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
-
   _mode = newMode;
 }
 
@@ -302,7 +299,11 @@ void RFM69::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferSize,
   // no need to wait for transmit mode to be ready since its handled by the radio
   setMode(RF69_MODE_TX);
   uint32_t txStart = millis();
-  while (digitalRead(_interruptPin) == 0 && millis() - txStart < RF69_TX_LIMIT_MS); // wait for DIO0 to turn HIGH signalling transmission finish
+	#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MKL26Z64__)
+		while (digitalReadFast(_interruptPin) == 0 && millis() - txStart < RF69_TX_LIMIT_MS); // wait for DIO0 to turn HIGH signalling transmission finish
+	#else
+		while (digitalRead(_interruptPin) == 0 && millis() - txStart < RF69_TX_LIMIT_MS); // wait for DIO0 to turn HIGH signalling transmission finish
+	#endif
   //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // wait for ModeReady
   setMode(RF69_MODE_STANDBY);
 }
@@ -438,23 +439,40 @@ void RFM69::writeReg(uint8_t addr, uint8_t value)
 
 // select the RFM69 transceiver (save SPI settings, set CS low)
 void RFM69::select() {
-  noInterrupts();
-  // save current SPI settings
-  _SPCR = SPCR;
-  _SPSR = SPSR;
-  // set RFM69 SPI settings
-  SPI.setDataMode(SPI_MODE0);
-  SPI.setBitOrder(MSBFIRST);
-  SPI.setClockDivider(SPI_CLOCK_DIV4); // decided to slow down from DIV2 after SPI stalling in some instances, especially visible on mega1284p when RFM69 and FLASH chip both present
-  digitalWrite(_slaveSelectPin, LOW);
+	noInterrupts();
+	// set RFM69 SPI settings
+	#if defined(SPI_HAS_TRANSACTION)
+		SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
+		_SPCR = SPCR;
+		_SPSR = SPSR;
+	#else
+		// save current SPI settings
+		_SPCR = SPCR;
+		_SPSR = SPSR;
+		SPI.setDataMode(SPI_MODE0);
+		SPI.setBitOrder(MSBFIRST);
+		SPI.setClockDivider(SPI_CLOCK_DIV4); // decided to slow down from DIV2 after SPI stalling in some instances, especially visible on mega1284p when RFM69 and FLASH chip both present
+	#endif
+	#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MKL26Z64__)
+		digitalWriteFast(_slaveSelectPin, LOW);
+	#else
+		digitalWrite(_slaveSelectPin, LOW);
+	#endif
 }
 
 // unselect the RFM69 transceiver (set CS high, restore SPI settings)
 void RFM69::unselect() {
-  digitalWrite(_slaveSelectPin, HIGH);
-  // restore SPI settings to what they were before talking to RFM69
-  SPCR = _SPCR;
-  SPSR = _SPSR;
+	#if !defined(SPI_HAS_TRANSACTION)
+		digitalWrite(_slaveSelectPin, HIGH);
+		// restore SPI settings to what they were before talking to RFM69
+		SPCR = _SPCR;
+		SPSR = _SPSR;
+	#else
+		digitalWriteFast(_slaveSelectPin, HIGH);
+		SPCR = _SPCR;
+		SPSR = _SPSR;
+		SPI.endTransaction();
+	#endif
   interrupts();
 }
 
@@ -482,11 +500,13 @@ void RFM69::setHighPowerRegs(bool onOff) {
 }
 
 // set the slave select (CS) pin 
+/*
 void RFM69::setCS(uint8_t newSPISlaveSelect) {
   _slaveSelectPin = newSPISlaveSelect;
   digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
 }
+*/
 
 //for debugging
 #define REGISTER_DETAIL 0

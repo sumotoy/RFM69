@@ -31,6 +31,7 @@
 #ifndef RFM69_h
 #define RFM69_h
 #include <Arduino.h>            // assumes Arduino IDE v1.0 or greater
+#include <SPI.h>
 
 #define RF69_MAX_DATA_LEN       61 // to take advantage of the built in AES/CRC we want to limit the frame size to the internal FIFO size (66 bytes - 3 bytes overhead - 2 bytes crc)
 #define RF69_SPI_CS             SS // SS is the SPI slave select pin, for instance D10 on ATmega328
@@ -45,6 +46,9 @@
 #elif defined(__AVR_ATmega32U4__)
   #define RF69_IRQ_PIN          3
   #define RF69_IRQ_NUM          0
+#elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MKL26Z64__)
+  #define RF69_IRQ_PIN          2
+  #define RF69_IRQ_NUM          2  
 #else 
   #define RF69_IRQ_PIN          2
   #define RF69_IRQ_NUM          0  
@@ -110,7 +114,7 @@ class RFM69 {
     uint32_t getFrequency();
     void setFrequency(uint32_t freqHz);
     void encrypt(const char* key);
-    void setCS(uint8_t newSPISlaveSelect);
+    //void setCS(uint8_t newSPISlaveSelect);
     int16_t readRSSI(bool forceTrigger=false);
     void promiscuous(bool onOff=true);
     virtual void setHighPower(bool onOFF=true); // has to be called after initialize() for RFM69HW
