@@ -10,6 +10,7 @@ The latest examples, new features and bug fixes are found in the [original repos
 The reason I forked this is because Author doesn't seems like Teensy and the low level code structure looks weak to me.<br>
 Maybe the reason it's moteino, but I strongly disagree, Teensy it's immense better than moteino in every part, not least it cost a fraction.<br> So I started this fork that contains mods for Teensy's (while maintain compatibility with other CPU's) and will have some modifications to get better results and less conflicts with other devices.<br>
 Thanks a lot to Felix for his great work and for sharing the whole thing.<br>
+Why don't use <b>radionead</b> instead? The reason it's simple, radiohead it's a big mess! I already tried to put my hands on but the author of radiohead doesn't published on github, cannot find a support forum and his code it's so intricated that it's almost impossible track changes and put back in a new distro, the current version it's still no SPI transaction compatible. I maded the same mistake time ago when I wanted an universal library for GPIO chip and at the end I've splitted, much better have a separate lib for each device instead a mess for many.<br>
 
 ##License
 GPL 3.0, please see the [License.txt](https://github.com/LowPowerLab/RFM69/blob/master/License.txt) file for details. Be sure to include the same license with any fork or redistribution of this library.
