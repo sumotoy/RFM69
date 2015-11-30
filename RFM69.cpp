@@ -45,6 +45,9 @@ volatile uint8_t RFM69::ACK_RECEIVED; // should be polled immediately after send
 volatile int16_t RFM69::RSSI;          // most accurate RSSI during reception (closest to the reception)
 RFM69* RFM69::selfPointer;
 
+
+
+
 bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
 {
   const uint8_t CONFIG[][2] =
@@ -91,6 +94,7 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
 
   
 	pinMode(_slaveSelectPin, OUTPUT);
+	pinMode(interruptPin,INPUT);
 	SPI.begin();
 	digitalWrite(_slaveSelectPin, HIGH);
   
@@ -112,11 +116,28 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
 	start = millis();
 	while (((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis()-start < timeout); // wait for ModeReady
 	if (millis()-start >= timeout) return false;
-	attachInterrupt(_interruptNum, RFM69::isr0, RISING);
-
+	configureInterruptPin(interruptPin);
+	/*
+	#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MKL26Z64__)
+		attachInterrupt(interruptPin, RFM69::isr0, RISING);//can use any pin
+	#else
+		attachInterrupt(_interruptNum, RFM69::isr0, RISING);
+	#endif
+	*/
 	selfPointer = this;
 	_address = nodeID;
 	return true;
+}
+
+void RFM69::configureInterruptPin(byte pin) 
+{
+	int intNum = digitalPinToInterrupt(pin);
+	if (intNum != NOT_AN_INTERRUPT) {
+		#if defined(SPI_HAS_TRANSACTION)
+		SPI.usingInterrupt(intNum);
+		#endif
+		attachInterrupt(intNum, RFM69::isr0, RISING);
+	}
 }
 
 // return the frequency (in Hz)
