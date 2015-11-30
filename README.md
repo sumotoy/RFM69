@@ -6,6 +6,11 @@ RFM69 library for RFM69W, RFM69HW, RFM69CW, RFM69HCW (semtech SX1231, SX1231H)
 <br/>
 The latest examples, new features and bug fixes are found in the [original repository](https://github.com/LowPowerLab/RFM69) of this library.
 
+##Changes from the original author version
+The reason I forked this is because Author doesn't seems like Teensy and the low level code structure looks weak to me.<br>
+Maybe the reason it's moteino, but I strongly disagree, Teensy it's immense better than moteino in every part, not least it cost a fraction.<br> So I started this fork that contains mods for Teensy's (while maintain compatibility with other CPU's) and will have some modifications to get better results and less conflicts with other devices.<br>
+Thanks a lot to Felix for his great work and for sharing the whole thing.<br>
+
 ##License
 GPL 3.0, please see the [License.txt](https://github.com/LowPowerLab/RFM69/blob/master/License.txt) file for details. Be sure to include the same license with any fork or redistribution of this library.
 
